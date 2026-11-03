@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { createSessionToken, setSessionCookie } from "@/lib/auth";
+import { createSessionToken } from "@/lib/auth";
 import { z } from "zod";
+
+export const dynamic = "force-dynamic";
 
 const loginSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
@@ -61,12 +63,21 @@ export async function POST(request: NextRequest) {
     };
 
     const token = await createSessionToken(sessionUser);
-    await setSessionCookie(token);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       user: sessionUser,
     });
+
+    response.cookies.set("nfc_auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
+    return response;
   } catch (error) {
     console.error("Error en login:", error);
     return NextResponse.json(
@@ -75,4 +86,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { HelpCircle, QrCode } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default function QrNotFoundPage({
   searchParams,
 }: {

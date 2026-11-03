@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft, ShieldAlert } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default function QrSuspendedPage({
   params,
 }: {

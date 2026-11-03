@@ -4,6 +4,8 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QrCode, Radio, ArrowRight, ShieldCheck, Lock, Mail, Loader2, Sparkles } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
