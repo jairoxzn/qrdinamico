@@ -104,7 +104,7 @@ export default function Sidebar({ user }: SidebarProps) {
         </div>
         <div>
           <span className="block text-[10px] font-bold tracking-widest uppercase text-blue-300">
-            XhionSoft
+            JAIROSYSTEN
           </span>
           <span className="block text-sm font-bold tracking-tight text-white leading-tight">
             NFC Smart QR

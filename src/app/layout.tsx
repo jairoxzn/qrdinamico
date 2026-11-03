@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "NFC Smart QR Manager | XhionSoft Technologies",
-  description: "Plataforma profesional de gestión de códigos QR dinámicos y tecnología NFC para XhionSoft Technologies.",
+  title: "NFC Smart QR Manager | JAIROSYSTEN",
+  description: "Plataforma profesional de gestión de códigos QR dinámicos y tecnología NFC para JAIROSYSTEN.",
   icons: {
     icon: "/favicon.ico",
   },

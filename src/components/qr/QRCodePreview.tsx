@@ -22,7 +22,7 @@ export default function QRCodePreview({
   title,
   fgColor = "#010B47",
   bgColor = "#FFFFFF",
-  companyName = "XhionSoft Technologies",
+  companyName = "JAIROSYSTEN",
   size = 240,
 }: QRCodePreviewProps) {
   const [dataUrl, setDataUrl] = useState<string>("");
@@ -60,7 +60,7 @@ export default function QRCodePreview({
     if (!dataUrl) return;
     const a = document.createElement("a");
     a.href = dataUrl;
-    a.download = `QR_${shortCode}_xhionsoft.png`;
+    a.download = `QR_${shortCode}_jairosysten.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

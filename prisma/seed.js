@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Iniciando seed para NFC Smart QR Manager (XhionSoft Technologies)...");
+  console.log("Iniciando seed para NFC Smart QR Manager (JAIROSYSTEN)...");
 
   // Limpiar datos previos si existen
   await prisma.scanLog.deleteMany({});
@@ -20,12 +20,12 @@ async function main() {
   // 1. Crear usuarios
   const admin = await prisma.user.create({
     data: {
-      name: "Administrador XhionSoft",
-      email: "admin@xhionsoft.com",
+      name: "Administrador JAIROSYSTEN",
+      email: "admin@jairosysten.com",
       passwordHash: adminPasswordHash,
       role: "ADMIN",
       status: "ACTIVE",
-      company: "XhionSoft Technologies",
+      company: "JAIROSYSTEN",
       phone: "+57 300 123 4567",
       maxQRs: 1000,
     },
@@ -256,8 +256,8 @@ async function main() {
   // 6. System settings
   await prisma.systemSetting.createMany({
     data: [
-      { key: "company_name", value: "XhionSoft Technologies" },
-      { key: "support_email", value: "soporte@xhionsoft.com" },
+      { key: "company_name", value: "JAIROSYSTEN" },
+      { key: "support_email", value: "soporte@jairosysten.com" },
       { key: "default_redirect_delay_ms", value: "0" },
       { key: "allow_client_registration", value: "false" },
     ],

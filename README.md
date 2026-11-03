@@ -1,4 +1,4 @@
-# NFC Smart QR Manager — XhionSoft Technologies
+# NFC Smart QR Manager — JAIROSYSTEN
 
 Plataforma profesional de alta disponibilidad para la generación, personalización, gestión y analítica de **códigos QR dinámicos** y **tarjetas físicas con chips NFC** (NTAG213, NTAG215, NTAG216).
 
@@ -24,7 +24,7 @@ Plataforma profesional de alta disponibilidad para la generación, personalizaci
 El formulario de inicio de sesión (`/login`) incluye botones de **acceso rápido en 1-clic**:
 
 ### 1. Administrador de Plataforma
-- **Correo:** `admin@xhionsoft.com`
+- **Correo:** `admin@jairosysten.com`
 - **Contraseña:** `adminpassword123`
 - **Capacidades:** Control total, gestión de clientes corporativos, cuotas de códigos QR, catálogo completo y auditoría global.
 

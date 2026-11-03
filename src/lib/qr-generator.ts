@@ -88,7 +88,7 @@ export async function generatePrintablePdf(
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("XhionSoft Technologies — Soluciones NFC & QR Dinámico", 20, 26);
+  doc.text("JAIROSYSTEN — Soluciones NFC & QR Dinámico", 20, 26);
 
   // Card Container / Box
   doc.setDrawColor(226, 232, 240);
@@ -134,7 +134,7 @@ export async function generatePrintablePdf(
   // Footer branding
   doc.setTextColor(148, 163, 184);
   doc.setFontSize(8);
-  doc.text("Generado por XhionSoft Technologies • www.xhionsoft.com", 105, 280, { align: "center" });
+  doc.text("Generado por JAIROSYSTEN • www.jairosysten.com", 105, 280, { align: "center" });
 
   return doc;
 }

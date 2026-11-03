@@ -42,7 +42,7 @@ export default function QrNotFoundPage({
         </div>
 
         <div className="text-xs text-slate-400">
-          Plataforma <span className="font-semibold text-[#025CF3]">XhionSoft Technologies</span>
+          Plataforma <span className="font-semibold text-[#025CF3]">JAIROSYSTEN</span>
         </div>
       </div>
     </div>

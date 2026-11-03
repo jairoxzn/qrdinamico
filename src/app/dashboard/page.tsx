@@ -71,7 +71,7 @@ export default function DashboardPage() {
             Panel de Control Dinámico
           </h2>
           <p className="text-sm text-slate-500">
-            Supervisión en tiempo real de códigos QR dinámicos y chips NFC de XhionSoft
+            Supervisión en tiempo real de códigos QR dinámicos y chips NFC de JAIROSYSTEN
           </p>
         </div>
 

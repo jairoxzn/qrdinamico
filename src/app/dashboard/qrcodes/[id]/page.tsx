@@ -332,7 +332,7 @@ export default function QRCodeDetailPage() {
               title={qr.title}
               fgColor={qr.fgColor}
               bgColor={qr.bgColor}
-              companyName={qr.user?.company || "XhionSoft Technologies"}
+              companyName={qr.user?.company || "JAIROSYSTEN"}
               size={230}
             />
           </div>

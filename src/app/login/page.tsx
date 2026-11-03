@@ -71,7 +71,7 @@ function LoginForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="ejemplo@xhionsoft.com"
+              placeholder="ejemplo@jairosysten.com"
               className="block w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#025CF3] focus:border-transparent transition-smooth"
             />
           </div>
@@ -127,14 +127,14 @@ function LoginForm() {
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => handleQuickLogin("admin@xhionsoft.com", "adminpassword123")}
+            onClick={() => handleQuickLogin("admin@jairosysten.com", "adminpassword123")}
             className="p-2.5 text-left border border-slate-200 rounded-xl hover:border-[#025CF3] hover:bg-blue-50/50 transition-smooth group"
           >
             <div className="text-xs font-bold text-[#010B47] group-hover:text-[#025CF3]">
               ADMINISTRADOR
             </div>
             <div className="text-[11px] text-slate-500 truncate">
-              admin@xhionsoft.com
+              admin@jairosysten.com
             </div>
           </button>
 
@@ -167,7 +167,7 @@ export default function LoginPage() {
           </div>
           <div className="text-left pr-2">
             <span className="block text-xs font-bold uppercase tracking-wider text-blue-300">
-              XhionSoft Technologies
+              JAIROSYSTEN
             </span>
             <span className="block text-base font-extrabold tracking-tight">
               NFC Smart QR Manager

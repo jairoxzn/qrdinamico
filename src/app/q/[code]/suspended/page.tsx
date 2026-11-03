@@ -41,7 +41,7 @@ export default function QrSuspendedPage({
 
         <div className="text-xs text-slate-400">
           Tecnología provista por{" "}
-          <span className="font-semibold text-[#025CF3]">XhionSoft Technologies</span>
+          <span className="font-semibold text-[#025CF3]">JAIROSYSTEN</span>
         </div>
       </div>
     </div>

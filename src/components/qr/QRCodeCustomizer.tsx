@@ -14,7 +14,7 @@ interface QRCodeCustomizerProps {
 }
 
 const FG_PRESETS = [
-  { name: "Azul XhionSoft", hex: "#010B47" },
+  { name: "Azul JAIROSYSTEN", hex: "#010B47" },
   { name: "Azul Eléctrico", hex: "#025CF3" },
   { name: "Negro Puro", hex: "#000000" },
   { name: "Gris Grafito", hex: "#1E293B" },

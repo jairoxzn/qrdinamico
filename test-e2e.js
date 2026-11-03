@@ -53,7 +53,7 @@ async function runTests() {
     assert(userCount >= 2, `Conexión a Neon PostgreSQL exitosa (${userCount} usuarios encontrados)`);
 
     // 2. Probar autenticación de ADMIN y CLIENTE
-    const admin = await prisma.user.findUnique({ where: { email: "admin@xhionsoft.com" } });
+    const admin = await prisma.user.findUnique({ where: { email: "admin@jairosysten.com" } });
     assert(admin !== null && admin.role === "ADMIN", "Usuario Administrador verificado");
     const adminPassOk = await bcrypt.compare("adminpassword123", admin.passwordHash);
     assert(adminPassOk === true, "Verificación de contraseña encriptada (bcrypt) de Administrador");
