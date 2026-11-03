@@ -1,0 +1,160 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum QRStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum NfcStatus {
+  UNASSIGNED
+  ASSIGNED
+  INACTIVE
+}
+
+model User {
+  id                   String               @id @default(cuid())
+  name                 String
+  email                String               @unique
+  passwordHash         String
+  role                 Role                 @default(CLIENT)
+  status               UserStatus           @default(ACTIVE)
+  company              String?
+  phone                String?
+  maxQRs               Int                  @default(50)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  qrCodes              QRCode[]
+  nfcCards             NfcCard[]
+  destinationHistories DestinationHistory[]
+
+  @@map("users")
+}
+
+model QRCode {
+  id                String               @id @default(cuid())
+  shortCode         String               @unique
+  title             String
+  description       String?
+  category          String?              @default("General")
+  destinationUrl    String
+  status            QRStatus             @default(ACTIVE)
+  scanCount         Int                  @default(0)
+  lastScannedAt     DateTime?
+  
+  // Customization properties
+  fgColor           String               @default("#010B47")
+  bgColor           String               @default("#FFFFFF")
+  dotStyle          String               @default("square") // square, rounded, dots
+  cornerSquareStyle String               @default("square") // square, rounded, extra-rounded
+  logoUrl           String?
+  
+  userId            String
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  nfcCards          NfcCard[]
+  scans             ScanLog[]
+  history           DestinationHistory[]
+  
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([shortCode])
+  @@index([userId])
+  @@map("qr_codes")
+}
+
+model NfcCard {
+  id           String     @id @default(cuid())
+  uid          String     @unique
+  label        String
+  model        String     @default("NTAG215")
+  batch        String?
+  status       NfcStatus  @default(UNASSIGNED)
+  
+  qrCodeId     String?
+  qrCode       QRCode?    @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+  
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  lastTappedAt DateTime?
+  notes        String?
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([uid])
+  @@index([userId])
+  @@index([qrCodeId])
+  @@map("nfc_cards")
+}
+
+model ScanLog {
+  id         String   @id @default(cuid())
+  qrCodeId   String
+  qrCode     QRCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  
+  ipHash     String?
+  deviceType String?  // Mobile, Desktop, Tablet, Bot
+  browser    String?  // Chrome, Safari, Firefox, etc.
+  os         String?  // iOS, Android, Windows, macOS, Linux
+  referer    String?
+  userAgent  String?
+  country    String?
+  city       String?
+  source     String?  @default("QR") // "QR" or "NFC"
+  
+  scannedAt  DateTime @default(now())
+
+  @@index([qrCodeId])
+  @@index([scannedAt])
+  @@map("scan_logs")
+}
+
+model DestinationHistory {
+  id          String   @id @default(cuid())
+  qrCodeId    String
+  qrCode      QRCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  
+  oldUrl      String
+  newUrl      String
+  changedById String
+  changedBy   User     @relation(fields: [changedById], references: [id], onDelete: Cascade)
+  reason      String?
+  
+  createdAt   DateTime @default(now())
+
+  @@index([qrCodeId])
+  @@map("destination_histories")
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
