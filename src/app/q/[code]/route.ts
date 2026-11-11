@@ -4,6 +4,17 @@ import { hashIp, parseUserAgentInfo, validateDestinationUrl } from "@/lib/securi
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Ejecuta una promesa sin bloquear la respuesta. En Vercel usa waitUntil para
+ * que la función no se congele antes de terminar; en servidores Node normales
+ * la promesa simplemente continúa tras enviar la respuesta.
+ */
+function runInBackground(promise: Promise<unknown>) {
+  const safe = promise.catch((e) => console.error("Tarea en segundo plano falló:", e));
+  const ctx = (globalThis as any)[Symbol.for("@vercel/request-context")]?.get?.();
+  if (ctx?.waitUntil) ctx.waitUntil(safe);
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { code: string } }
@@ -18,9 +29,6 @@ export async function GET(
     // 1. Buscar el código QR por shortCode
     const qr = await prisma.qRCode.findUnique({
       where: { shortCode },
-      include: {
-        nfcCards: true,
-      },
     });
 
     // 2. Si no existe, mostrar pantalla de no encontrado
@@ -60,44 +68,45 @@ export async function GET(
       request.headers.get("x-vercel-ip-city") ||
       "Local";
 
-    // 5. Registrar el escaneo e incrementar contador (sin bloquear la redirección de forma asíncrona)
-    const updatePromises: Promise<any>[] = [
-      prisma.qRCode.update({
-        where: { id: qr.id },
-        data: {
-          scanCount: { increment: 1 },
-          lastScannedAt: new Date(),
-        },
-      }),
-      prisma.scanLog.create({
-        data: {
-          qrCodeId: qr.id,
-          ipHash: ipHashed,
-          deviceType,
-          browser,
-          os,
-          referer: referer || (sourceParam === "NFC" ? "nfc://tag-tap" : "direct://camera-scan"),
-          userAgent: userAgent.substring(0, 255),
-          country,
-          city,
-          source: sourceParam === "NFC" ? "NFC" : "QR",
-          scannedAt: new Date(),
-        },
-      }),
-    ];
-
-    // Si vino de una tarjeta NFC asociada o el parámetro es nfc, actualizar la tarjeta
-    if (sourceParam === "NFC" && qr.nfcCards.length > 0) {
-      updatePromises.push(
-        prisma.nfcCard.updateMany({
-          where: { qrCodeId: qr.id },
-          data: { lastTappedAt: new Date() },
-        })
-      );
-    }
-
-    // Ejecutar registro de analíticas
-    await Promise.allSettled(updatePromises);
+    // 5. Registrar analíticas en segundo plano: la redirección NO espera a la BD
+    const now = new Date();
+    const isNfc = sourceParam === "NFC";
+    const trackScan = async () => {
+      const tasks: Promise<unknown>[] = [
+        prisma.qRCode.update({
+          where: { id: qr.id },
+          data: { scanCount: { increment: 1 }, lastScannedAt: now },
+        }),
+        prisma.scanLog.create({
+          data: {
+            qrCodeId: qr.id,
+            ipHash: ipHashed,
+            deviceType,
+            browser,
+            os,
+            referer: referer || (isNfc ? "nfc://tag-tap" : "direct://camera-scan"),
+            userAgent: userAgent.substring(0, 255),
+            country,
+            city,
+            source: isNfc ? "NFC" : "QR",
+            scannedAt: now,
+          },
+        }),
+      ];
+      if (isNfc) {
+        tasks.push(
+          prisma.nfcCard.updateMany({
+            where: { qrCodeId: qr.id },
+            data: { lastTappedAt: now },
+          })
+        );
+      }
+      const results = await Promise.allSettled(tasks);
+      for (const r of results) {
+        if (r.status === "rejected") console.error("Error registrando escaneo:", r.reason);
+      }
+    };
+    runInBackground(trackScan());
 
     // 6. Validar seguridad del destino antes de redirigir
     const validation = validateDestinationUrl(qr.destinationUrl);
