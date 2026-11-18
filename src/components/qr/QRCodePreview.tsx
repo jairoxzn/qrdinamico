@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import QRCodeLib from "qrcode";
 import { Download, FileText, ExternalLink, Copy, Check, Printer } from "lucide-react";
-import { generatePrintablePdf, QROptions } from "@/lib/qr-generator";
+import { generatePrintablePdf } from "@/lib/qr-generator";
+import { buildQrOptions } from "@/lib/qr-style";
 import { getDynamicQrUrl } from "@/lib/utils";
 
 interface QRCodePreviewProps {
@@ -13,6 +13,7 @@ interface QRCodePreviewProps {
   bgColor?: string;
   dotStyle?: string;
   cornerSquareStyle?: string;
+  logoUrl?: string | null;
   companyName?: string;
   size?: number;
 }
@@ -22,33 +23,71 @@ export default function QRCodePreview({
   title,
   fgColor = "#010B47",
   bgColor = "#FFFFFF",
+  dotStyle = "square",
+  cornerSquareStyle = "square",
+  logoUrl = null,
   companyName = "JAIROSYSTEN",
   size = 240,
 }: QRCodePreviewProps) {
-  const [dataUrl, setDataUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
+  const [ready, setReady] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const qrRef = useRef<any>(null);
 
   const dynamicUrl = getDynamicQrUrl(shortCode);
 
+  const optionsFor = (px: number) =>
+    buildQrOptions({ data: dynamicUrl, fgColor, bgColor, dotStyle, cornerSquareStyle, logoUrl, size: px });
+
   useEffect(() => {
-    QRCodeLib.toDataURL(dynamicUrl, {
-      width: size * 2,
-      margin: 2,
-      color: {
-        dark: fgColor,
-        light: bgColor,
-      },
-      errorCorrectionLevel: "H",
-    })
-      .then((url) => {
-        setDataUrl(url);
-      })
-      .catch((err) => {
-        console.error("Error al generar imagen de código QR:", err);
-      });
-  }, [dynamicUrl, fgColor, bgColor, size]);
+    let cancelled = false;
+    (async () => {
+      const { default: QRCodeStyling } = await import("qr-code-styling");
+      if (cancelled || !containerRef.current) return;
+      const opts = optionsFor(size * 2);
+      if (!qrRef.current) {
+        qrRef.current = new QRCodeStyling(opts);
+        containerRef.current.innerHTML = "";
+        qrRef.current.append(containerRef.current);
+      } else {
+        qrRef.current.update(opts);
+      }
+      // La vista previa se dibuja al doble de resolución y se reduce por CSS
+      const canvas = containerRef.current.querySelector("canvas");
+      if (canvas) {
+        canvas.style.width = `${size}px`;
+        canvas.style.height = `${size}px`;
+      }
+      setReady(true);
+    })().catch((err) => console.error("Error al generar código QR:", err));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dynamicUrl, fgColor, bgColor, dotStyle, cornerSquareStyle, logoUrl, size]);
+
+  // Genera una copia a tamaño completo (independiente de la vista previa) para exportar
+  const exportRaw = async (extension: "png" | "svg", px: number): Promise<Blob> => {
+    const { default: QRCodeStyling } = await import("qr-code-styling");
+    const opts = optionsFor(px);
+    if (extension === "svg") opts.type = "svg";
+    const qr = new QRCodeStyling(opts);
+    const raw = await qr.getRawData(extension);
+    if (!raw) throw new Error("No se pudo generar el archivo");
+    return raw as Blob;
+  };
+
+  const saveBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(dynamicUrl);
@@ -56,33 +95,17 @@ export default function QRCodePreview({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadPng = () => {
-    if (!dataUrl) return;
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = `QR_${shortCode}_jairosysten.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownloadPng = async () => {
+    try {
+      saveBlob(await exportRaw("png", 1200), `QR_${shortCode}_jairosysten.png`);
+    } catch (err) {
+      console.error("Error al descargar PNG:", err);
+    }
   };
 
   const handleDownloadSvg = async () => {
     try {
-      const svgString = await QRCodeLib.toString(dynamicUrl, {
-        type: "svg",
-        color: { dark: fgColor, light: bgColor },
-        margin: 2,
-        errorCorrectionLevel: "H",
-      });
-      const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `QR_${shortCode}_vector.svg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      saveBlob(await exportRaw("svg", 1000), `QR_${shortCode}_vector.svg`);
     } catch (err) {
       console.error("Error al descargar SVG:", err);
     }
@@ -91,11 +114,14 @@ export default function QRCodePreview({
   const handleDownloadPdf = async () => {
     setGeneratingPdf(true);
     try {
-      const doc = await generatePrintablePdf(
-        { shortCode, fgColor, bgColor },
-        title,
-        companyName
-      );
+      const blob = await exportRaw("png", 1000);
+      const qrDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      const doc = await generatePrintablePdf({ shortCode, fgColor, bgColor }, title, companyName, qrDataUrl);
       doc.save(`Ficha_NFC_QR_${shortCode}.pdf`);
     } catch (err) {
       console.error("Error al generar PDF:", err);
@@ -108,20 +134,18 @@ export default function QRCodePreview({
     <div className="flex flex-col items-center p-5 bg-white rounded-2xl border border-slate-200 shadow-soft w-full">
       {/* Visual QR Container */}
       <div
-        className="p-4 rounded-2xl border border-slate-200/80 shadow-inner flex items-center justify-center transition-smooth"
+        className="relative p-4 rounded-2xl border border-slate-200/80 shadow-inner flex items-center justify-center transition-smooth"
         style={{ backgroundColor: bgColor }}
       >
-        {dataUrl ? (
-          <img
-            src={dataUrl}
-            alt={`QR Code ${shortCode}`}
-            style={{ width: size, height: size }}
-            className="rounded-lg object-contain"
-          />
-        ) : (
+        <div
+          ref={containerRef}
+          style={{ width: size, height: size }}
+          className="rounded-lg overflow-hidden flex items-center justify-center"
+        />
+        {!ready && (
           <div
             style={{ width: size, height: size }}
-            className="bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 text-xs animate-pulse"
+            className="absolute bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 text-xs animate-pulse"
           >
             Generando QR...
           </div>
@@ -189,4 +213,3 @@ export default function QRCodePreview({
     </div>
   );
 }
-

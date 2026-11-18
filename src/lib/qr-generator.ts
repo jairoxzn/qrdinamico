@@ -63,7 +63,8 @@ export async function generateQrDataUrl(options: QROptions): Promise<string> {
 export async function generatePrintablePdf(
   options: QROptions,
   title: string,
-  clientCompany?: string
+  clientCompany?: string,
+  qrImageDataUrl?: string
 ): Promise<jsPDF> {
   const doc = new jsPDF({
     orientation: "portrait",
@@ -71,10 +72,13 @@ export async function generatePrintablePdf(
     format: "a4",
   });
 
-  const qrDataUrl = await generateQrDataUrl({
-    ...options,
-    width: 1000,
-  });
+  // Si el cliente ya generó el QR estilizado (logo y formas), se usa tal cual
+  const qrDataUrl =
+    qrImageDataUrl ||
+    (await generateQrDataUrl({
+      ...options,
+      width: 1000,
+    }));
 
   // Background header band
   doc.setFillColor(1, 11, 71); // #010B47

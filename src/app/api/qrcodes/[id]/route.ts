@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { validateDestinationUrl } from "@/lib/security";
+import { CORNER_STYLE_IDS, DOT_STYLE_IDS, MAX_LOGO_CHARS } from "@/lib/qr-style";
 import { z } from "zod";
+
+const logoSchema = z
+  .string()
+  .max(MAX_LOGO_CHARS, "El logo es demasiado pesado")
+  .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/, "Formato de logo no válido");
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +21,9 @@ const updateQrSchema = z.object({
   changeReason: z.string().max(255).optional(),
   fgColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   bgColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  dotStyle: z.enum(["square", "rounded", "dots"]).optional(),
-  cornerSquareStyle: z.enum(["square", "rounded", "extra-rounded"]).optional(),
-  logoUrl: z.string().optional().nullable(),
+  dotStyle: z.enum(DOT_STYLE_IDS).optional(),
+  cornerSquareStyle: z.enum(CORNER_STYLE_IDS).optional(),
+  logoUrl: logoSchema.optional().nullable(),
 });
 
 export async function GET(

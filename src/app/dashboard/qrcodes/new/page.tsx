@@ -33,6 +33,7 @@ export default function NewQRCodePage() {
   const [bgColor, setBgColor] = useState("#FFFFFF");
   const [dotStyle, setDotStyle] = useState("square");
   const [cornerSquareStyle, setCornerSquareStyle] = useState("square");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   // Temporary short code for real-time live preview
   const [previewShortCode, setPreviewShortCode] = useState("");
@@ -79,6 +80,7 @@ export default function NewQRCodePage() {
           bgColor,
           dotStyle,
           cornerSquareStyle,
+          logoUrl,
           targetUserId: targetUserId || undefined,
         }),
       });
@@ -234,6 +236,8 @@ export default function NewQRCodePage() {
             setDotStyle={setDotStyle}
             cornerSquareStyle={cornerSquareStyle}
             setCornerSquareStyle={setCornerSquareStyle}
+            logoUrl={logoUrl}
+            setLogoUrl={setLogoUrl}
           />
 
           <button
@@ -270,6 +274,7 @@ export default function NewQRCodePage() {
                 bgColor={bgColor}
                 dotStyle={dotStyle}
                 cornerSquareStyle={cornerSquareStyle}
+                logoUrl={logoUrl}
                 size={230}
               />
             </div>

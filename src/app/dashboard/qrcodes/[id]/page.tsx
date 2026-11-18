@@ -22,6 +22,7 @@ import {
   Plus,
 } from "lucide-react";
 import QRCodePreview from "@/components/qr/QRCodePreview";
+import QRCodeCustomizer from "@/components/qr/QRCodeCustomizer";
 import DestinationUpdateModal from "@/components/qr/DestinationUpdateModal";
 import { QRCodeItem, DestinationHistoryItem } from "@/lib/types";
 import { formatDate, formatTimeAgo } from "@/lib/utils";
@@ -36,6 +37,49 @@ export default function QRCodeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [editingDesign, setEditingDesign] = useState(false);
+  const [savingDesign, setSavingDesign] = useState(false);
+  const [designError, setDesignError] = useState<string | null>(null);
+  const [design, setDesign] = useState({
+    fgColor: "#010B47",
+    bgColor: "#FFFFFF",
+    dotStyle: "square",
+    cornerSquareStyle: "square",
+    logoUrl: null as string | null,
+  });
+  const patchDesign = (p: Partial<typeof design>) => setDesign((d) => ({ ...d, ...p }));
+
+  const startEditDesign = () => {
+    setDesign({
+      fgColor: qr.fgColor,
+      bgColor: qr.bgColor,
+      dotStyle: qr.dotStyle,
+      cornerSquareStyle: qr.cornerSquareStyle,
+      logoUrl: qr.logoUrl ?? null,
+    });
+    setDesignError(null);
+    setEditingDesign(true);
+  };
+
+  const saveDesign = async () => {
+    setSavingDesign(true);
+    setDesignError(null);
+    try {
+      const res = await fetch(`/api/qrcodes/${qr.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(design),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo guardar el diseño");
+      setQr({ ...qr, ...design });
+      setEditingDesign(false);
+    } catch (err: any) {
+      setDesignError(err.message);
+    } finally {
+      setSavingDesign(false);
+    }
+  };
 
   const fetchQRDetail = async () => {
     try {
@@ -330,12 +374,58 @@ export default function QRCodeDetailPage() {
             <QRCodePreview
               shortCode={qr.shortCode}
               title={qr.title}
-              fgColor={qr.fgColor}
-              bgColor={qr.bgColor}
+              fgColor={editingDesign ? design.fgColor : qr.fgColor}
+              bgColor={editingDesign ? design.bgColor : qr.bgColor}
+              dotStyle={editingDesign ? design.dotStyle : qr.dotStyle}
+              cornerSquareStyle={editingDesign ? design.cornerSquareStyle : qr.cornerSquareStyle}
+              logoUrl={editingDesign ? design.logoUrl : qr.logoUrl}
               companyName={qr.user?.company || "JAIROSYSTEN"}
               size={230}
             />
           </div>
+
+          {editingDesign ? (
+            <div className="space-y-3">
+              <QRCodeCustomizer
+                fgColor={design.fgColor}
+                setFgColor={(v) => patchDesign({ fgColor: v })}
+                bgColor={design.bgColor}
+                setBgColor={(v) => patchDesign({ bgColor: v })}
+                dotStyle={design.dotStyle}
+                setDotStyle={(v) => patchDesign({ dotStyle: v })}
+                cornerSquareStyle={design.cornerSquareStyle}
+                setCornerSquareStyle={(v) => patchDesign({ cornerSquareStyle: v })}
+                logoUrl={design.logoUrl}
+                setLogoUrl={(v) => patchDesign({ logoUrl: v })}
+              />
+              {designError && <p className="text-xs text-rose-600">{designError}</p>}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setEditingDesign(false)}
+                  className="py-2.5 text-xs font-semibold rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveDesign}
+                  disabled={savingDesign}
+                  className="py-2.5 text-xs font-bold rounded-xl bg-[#025CF3] text-white hover:bg-[#0146BD] disabled:opacity-50"
+                >
+                  {savingDesign ? "Guardando..." : "Guardar diseño"}
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Cambiar el diseño no cambia el enlace: los QR ya impresos siguen funcionando.
+              </p>
+            </div>
+          ) : (
+            <button
+              onClick={startEditDesign}
+              className="w-full py-2.5 text-xs font-semibold rounded-xl border border-slate-200 bg-white hover:border-[#025CF3] hover:text-[#025CF3] text-slate-700 transition-smooth"
+            >
+              Personalizar diseño del QR
+            </button>
+          )}
 
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 text-xs text-blue-900 space-y-2">
             <div className="font-bold flex items-center gap-1.5 text-[#025CF3]">
