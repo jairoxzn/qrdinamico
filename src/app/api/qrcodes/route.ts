@@ -157,6 +157,9 @@ export async function POST(request: NextRequest) {
       shortCode = generateShortCode(8);
       attempts++;
     }
+    if (attempts >= 5) {
+      return NextResponse.json({ error: "No se pudo generar un código único, intente de nuevo." }, { status: 500 });
+    }
 
     const qr = await prisma.qRCode.create({
       data: {

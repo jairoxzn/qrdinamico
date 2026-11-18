@@ -33,9 +33,15 @@ export function formatTimeAgo(dateString?: string | Date | null): string {
 export function generateShortCode(length = 8): string {
   // Safe URL characters (letters and numbers, avoiding lookalike chars like 0, O, I, l)
   const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  // Muestreo por rechazo con CSPRNG para evitar sesgo y ser impredecible
+  const limit = 256 - (256 % chars.length);
   let result = "";
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  while (result.length < length) {
+    const bytes = new Uint8Array(length * 2);
+    globalThis.crypto.getRandomValues(bytes);
+    for (let i = 0; i < bytes.length && result.length < length; i++) {
+      if (bytes[i] < limit) result += chars[bytes[i] % chars.length];
+    }
   }
   return result;
 }

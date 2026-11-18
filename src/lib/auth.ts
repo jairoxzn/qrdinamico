@@ -2,10 +2,8 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { SessionUser } from "./types";
 import prisma from "./prisma";
+import { getAuthKey } from "./secret";
 
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "xhionsoft_super_secure_auth_token_key_jwt_2025_9876543210"
-);
 
 const COOKIE_NAME = "nfc_auth_token";
 
@@ -23,12 +21,12 @@ export async function createSessionToken(user: SessionUser): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(SECRET_KEY);
+    .sign(getAuthKey());
 }
 
 export async function verifySessionToken(token: string): Promise<SessionUser | null> {
   try {
-    const { payload } = await jwtVerify(token, SECRET_KEY);
+    const { payload } = await jwtVerify(token, getAuthKey());
     return payload as unknown as SessionUser;
   } catch {
     return null;

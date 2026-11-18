@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { UAParser } from "ua-parser-js";
+import { getAuthSecret } from "./secret";
 
 /**
  * Validates destination URLs against malicious protocols (e.g. javascript:, data:, vbscript:)
@@ -39,16 +40,9 @@ export function validateDestinationUrl(urlStr: string): { isValid: boolean; norm
     return { isValid: false, error: "Solo se permiten enlaces con protocolo HTTP o HTTPS." };
   }
 
-  // Prevent local/loopback redirects in production
-  if (
-    process.env.NODE_ENV === "production" &&
-    (parsed.hostname === "localhost" ||
-      parsed.hostname === "127.0.0.1" ||
-      parsed.hostname === "0.0.0.0" ||
-      parsed.hostname.startsWith("192.168.") ||
-      parsed.hostname.startsWith("10."))
-  ) {
-    return { isValid: false, error: "No se permiten redirecciones a direcciones IP de red local." };
+  // Bloquear destinos locales/privados (SSRF, metadata cloud, redes internas)
+  if (isPrivateHost(parsed.hostname)) {
+    return { isValid: false, error: "No se permiten redirecciones a direcciones locales o de red privada." };
   }
 
   return { isValid: true, normalizedUrl: parsed.toString() };
@@ -59,7 +53,7 @@ export function validateDestinationUrl(urlStr: string): { isValid: boolean; norm
  */
 export function hashIp(ip: string | null | undefined): string | null {
   if (!ip) return null;
-  const salt = process.env.AUTH_SECRET || "xhionsoft_ip_salt";
+  const salt = getAuthSecret();
   return crypto.createHmac("sha256", salt).update(ip).digest("hex").substring(0, 16);
 }
 
@@ -111,3 +105,25 @@ export function parseUserAgentInfo(userAgentString?: string | null): {
   };
 }
 
+
+function isPrivateHost(hostname: string): boolean {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) return true;
+
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    return (
+      a === 0 || a === 10 || a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 100 && b >= 64 && b <= 127)
+    );
+  }
+  // IPv6: loopback, ULA (fc00::/7), link-local (fe80::/10), IPv4-mapped
+  if (h.includes(":")) {
+    return h === "::1" || h === "::" || /^f[cd]/.test(h) || /^fe[89ab]/.test(h) || h.startsWith("::ffff:");
+  }
+  return false;
+}

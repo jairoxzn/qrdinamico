@@ -6,12 +6,41 @@ import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
+// Límite de intentos por IP (en memoria; por instancia en entornos serverless)
+const MAX_ATTEMPTS = 8;
+const WINDOW_MS = 15 * 60 * 1000;
+const attempts = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  if (attempts.size > 5000) {
+    attempts.forEach((v, k) => { if (v.resetAt < now) attempts.delete(k); });
+  }
+  const entry = attempts.get(key);
+  return !!entry && entry.resetAt > now && entry.count >= MAX_ATTEMPTS;
+}
+
+function registerFailure(key: string) {
+  const now = Date.now();
+  const entry = attempts.get(key);
+  if (!entry || entry.resetAt < now) attempts.set(key, { count: 1, resetAt: now + WINDOW_MS });
+  else entry.count++;
+}
+
 const loginSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
   password: z.string().min(1, "La contraseña es requerida"),
 });
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (isRateLimited(ip)) {
+    return NextResponse.json(
+      { error: "Demasiados intentos fallidos. Intente de nuevo en 15 minutos." },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await request.json();
     const result = loginSchema.safeParse(body);
@@ -30,6 +59,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
+      registerFailure(ip);
       return NextResponse.json(
         { error: "Credenciales de acceso incorrectas" },
         { status: 401 }
@@ -45,11 +75,14 @@ export async function POST(request: NextRequest) {
 
     const passwordMatch = await bcrypt.compare(password, user.passwordHash);
     if (!passwordMatch) {
+      registerFailure(ip);
       return NextResponse.json(
         { error: "Credenciales de acceso incorrectas" },
         { status: 401 }
       );
     }
+
+    attempts.delete(ip);
 
     const sessionUser = {
       id: user.id,

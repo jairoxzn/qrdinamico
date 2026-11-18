@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { getAuthKey } from "@/lib/secret";
 
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "xhionsoft_super_secure_auth_token_key_jwt_2025_9876543210"
-);
 
 const COOKIE_NAME = "nfc_auth_token";
 
@@ -25,7 +23,7 @@ export async function middleware(request: NextRequest) {
       const token = request.cookies.get(COOKIE_NAME)?.value;
       if (token) {
         try {
-          await jwtVerify(token, SECRET_KEY);
+          await jwtVerify(token, getAuthKey());
           return NextResponse.redirect(new URL("/dashboard", request.url));
         } catch {
           // Token inválido, continuar a /login
@@ -40,13 +38,24 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
     if (token) {
       try {
-        await jwtVerify(token, SECRET_KEY);
+        await jwtVerify(token, getAuthKey());
         return NextResponse.redirect(new URL("/dashboard", request.url));
       } catch {
         return NextResponse.redirect(new URL("/login", request.url));
       }
     }
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // 1b. Protección CSRF: las peticiones mutadoras a la API deben venir del mismo origen
+  if (
+    pathname.startsWith("/api/") &&
+    !["GET", "HEAD", "OPTIONS"].includes(request.method)
+  ) {
+    const origin = request.headers.get("origin");
+    if (origin && origin !== request.nextUrl.origin) {
+      return NextResponse.json({ error: "Origen no permitido" }, { status: 403 });
+    }
   }
 
   // 2. Proteger rutas del dashboard y API privada
@@ -61,7 +70,7 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    const { payload } = await jwtVerify(token, SECRET_KEY);
+    const { payload } = await jwtVerify(token, getAuthKey());
     const userRole = payload.role as string;
 
     // Control de acceso basado en roles (RBAC)

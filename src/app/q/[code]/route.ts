@@ -62,11 +62,9 @@ export async function GET(
     const country =
       request.headers.get("cf-ipcountry") ||
       request.headers.get("x-vercel-ip-country") ||
-      "Colombia";
-    const city =
-      request.headers.get("cf-ipcity") ||
-      request.headers.get("x-vercel-ip-city") ||
-      "Local";
+      null;
+    const rawCity = request.headers.get("cf-ipcity") || request.headers.get("x-vercel-ip-city");
+    const city = rawCity ? decodeURIComponent(rawCity) : null;
 
     // 5. Registrar analíticas en segundo plano: la redirección NO espera a la BD
     const now = new Date();
@@ -106,11 +104,16 @@ export async function GET(
         if (r.status === "rejected") console.error("Error registrando escaneo:", r.reason);
       }
     };
-    runInBackground(trackScan());
+    // Los bots (previsualizaciones de enlaces, crawlers) no cuentan como escaneos
+    if (deviceType !== "Bot") runInBackground(trackScan());
 
-    // 6. Validar seguridad del destino antes de redirigir
+    // 6. Validar el destino en cada redirección (protege datos antiguos o alterados)
     const validation = validateDestinationUrl(qr.destinationUrl);
-    const targetUrl = validation.isValid && validation.normalizedUrl ? validation.normalizedUrl : qr.destinationUrl;
+    if (!validation.isValid || !validation.normalizedUrl) {
+      console.error(`Destino inválido para QR ${qr.shortCode}: ${validation.error}`);
+      return new NextResponse("El destino de este código no es válido.", { status: 422 });
+    }
+    const targetUrl = validation.normalizedUrl;
 
     // 7. Redirigir mediante respuesta HTTP 307 (Temporary Redirect)
     // No-cache headers garantizan que la redirección no se guarde en caché del navegador
