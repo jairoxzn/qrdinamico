@@ -85,8 +85,8 @@ export function contrastWarning(fg: string, bg: string): string | null {
   return null;
 }
 
-/** Reduce el logo a un PNG de máx. 256px para que quepa en la BD y escanee rápido. */
-export function fileToLogoDataUrl(file: File, max = 256): Promise<string> {
+/** Reduce el logo a un PNG que quepa en `maxChars` (se achica progresivamente). */
+export function fileToLogoDataUrl(file: File, max = 256, maxChars = MAX_LOGO_CHARS): Promise<string> {
   return new Promise((resolve, reject) => {
     if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
       reject(new Error("Use una imagen PNG, JPG o WEBP."));
@@ -95,15 +95,22 @@ export function fileToLogoDataUrl(file: File, max = 256): Promise<string> {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const scale = Math.min(1, max / Math.max(img.width, img.height));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
-      const out = canvas.toDataURL("image/png");
-      if (out.length > MAX_LOGO_CHARS) reject(new Error("El logo es demasiado pesado. Use una imagen más simple."));
-      else resolve(out);
+      let side = max;
+      for (let i = 0; i < 6; i++) {
+        const scale = Math.min(1, side / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const out = canvas.toDataURL("image/png");
+        if (out.length <= maxChars) {
+          resolve(out);
+          return;
+        }
+        side = Math.round(side * 0.75);
+      }
+      reject(new Error("El logo es demasiado pesado. Use una imagen más simple."));
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);

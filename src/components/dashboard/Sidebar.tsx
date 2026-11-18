@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronRight,
   ShieldAlert,
+  CreditCard,
 } from "lucide-react";
 import { SessionUser } from "@/lib/types";
 
@@ -58,6 +59,12 @@ export default function Sidebar({ user }: SidebarProps) {
       title: "Tarjetas NFC",
       href: "/dashboard/nfc",
       icon: Radio,
+      exact: false,
+    },
+    {
+      title: "Diseñador de Tarjetas",
+      href: "/dashboard/cards",
+      icon: CreditCard,
       exact: false,
     },
     ...(user.role === "ADMIN"
